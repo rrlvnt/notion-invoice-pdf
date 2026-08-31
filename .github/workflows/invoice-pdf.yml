@@ -1,0 +1,24 @@
+name: Generate Invoice PDF
+
+on:
+  repository_dispatch:
+    types: [notion_invoice_published]
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install @notionhq/client puppeteer
+
+      - name: Render PDF and update Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PAGE_ID: ${{ github.event.client_payload.page_id }}
+        run: node render.js
