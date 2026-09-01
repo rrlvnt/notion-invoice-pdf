@@ -4,6 +4,9 @@ on:
   repository_dispatch:
     types: [notion_invoice_published]
 
+permissions:
+  contents: write
+
 jobs:
   render:
     runs-on: ubuntu-latest
