@@ -12,13 +12,30 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Install dependencies
         run: npm install @notionhq/client puppeteer
 
-      - name: Render PDF and update Notion
+      - name: Render PDF
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           PAGE_ID: ${{ github.event.client_payload.page_id }}
         run: node render.js
+
+      - name: Upload PDF as release asset
+        id: upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="invoice-${{ github.event.client_payload.page_id }}-${{ github.run_id }}"
+          gh release create "$TAG" invoice.pdf --title "$TAG" --notes "Auto-generated invoice PDF"
+          URL=$(gh release view "$TAG" --json assets -q '.assets[0].url')
+          echo "pdf_url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Write PDF link back to Notion
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          PAGE_ID: ${{ github.event.client_payload.page_id }}
+          PDF_URL: ${{ steps.upload.outputs.pdf_url }}
+        run: node attach.js
