@@ -121,6 +121,27 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-');
+  return `${m}.${d}.${y.slice(-2)}`;
+}
+
+function buildFilename(properties) {
+  const entity = properties['Entity']?.select?.name || '';
+  const dateStr = formatDateShort(properties['Issued']?.date?.start);
+  const rawTitle = properties['Name']?.title?.[0]?.plain_text || 'invoice';
+  const safeTitle = rawTitle.replace(/\s+/g, '_');
+
+  // Example target shape: BJ__08.31.26_INVOICE_WSC_Dry_Museum__NYC_2026
+  const parts = [];
+  if (entity) parts.push(`${entity}_`); // trailing underscore gives the "__" before the date
+  parts.push(dateStr);
+  parts.push(`_${safeTitle}`);
+
+  return parts.join('');
+}
+
 function buildHeaderHtml(properties) {
   const invoiceNumber = properties['Invoice #']?.formula?.string || '';
   const terms = properties['Terms']?.select?.name || '';
@@ -202,6 +223,8 @@ const CSS = `
 async function main() {
   const notionPage = await notion.pages.retrieve({ page_id: pageId });
   const headerHtml = buildHeaderHtml(notionPage.properties);
+  const filenameBase = buildFilename(notionPage.properties);
+  const pdfFilename = `${filenameBase}.pdf`;
 
   const blocks = await fetchChildrenRecursive(pageId);
   const bodyHtml = blocksToHtml(blocks);
@@ -229,7 +252,7 @@ async function main() {
   await browserPage.setContent(html, { waitUntil: 'networkidle0' });
   await browserPage.evaluateHandle('document.fonts.ready');
   await browserPage.pdf({
-    path: 'invoice.pdf',
+    path: pdfFilename,
     format: 'A4',
     landscape: false,
     printBackground: true,
@@ -238,7 +261,11 @@ async function main() {
   });
   await browser.close();
 
-  console.log('PDF generated: invoice.pdf');
+  console.log(`PDF generated: ${pdfFilename}`);
+
+  if (process.env.GITHUB_OUTPUT) {
+    fs.appendFileSync(process.env.GITHUB_OUTPUT, `pdf_filename=${pdfFilename}\n`);
+  }
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
