@@ -44,9 +44,9 @@ async function getAllBlocks(blockId) {
 async function main() {
   // TEMP DEBUG: dump page properties and raw block structure so we can see
   // the real shape before building the proper invoice layout.
-  const page = await notion.pages.retrieve({ page_id: pageId });
+  const notionPage = await notion.pages.retrieve({ page_id: pageId });
   console.log('=== PAGE PROPERTIES ===');
-  console.log(JSON.stringify(page.properties, null, 2));
+  console.log(JSON.stringify(notionPage.properties, null, 2));
 
   const blocks = await getAllBlocks(pageId);
   console.log('=== RAW BLOCKS ===');
