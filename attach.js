@@ -3,6 +3,7 @@ const { Client } = require('@notionhq/client');
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 const pageId = process.env.PAGE_ID;
 const pdfUrl = process.env.PDF_URL;
+const pdfFilename = process.env.PDF_FILENAME || 'invoice.pdf';
 
 // CONFIRM: change 'PDF' to the exact property name on your invoice database,
 // case-sensitive, must be a "Files & media" type property.
@@ -20,7 +21,7 @@ async function main() {
         files: [
           {
             type: 'external',
-            name: 'invoice.pdf',
+            name: pdfFilename,
             external: { url: pdfUrl }
           }
         ]
