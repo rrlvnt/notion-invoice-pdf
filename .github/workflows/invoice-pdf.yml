@@ -20,5 +20,5 @@ jobs:
       - name: Render PDF and update Notion
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          INVOICE_NAME: ${{ github.event.client_payload.invoice_name }}
+          PAGE_ID: ${{ github.event.client_payload.page_id }}
         run: node render.js
