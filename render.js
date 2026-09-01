@@ -233,6 +233,7 @@ async function main() {
     format: 'A4',
     landscape: false,
     printBackground: true,
+    scale: 0.7,
     margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
   });
   await browser.close();
