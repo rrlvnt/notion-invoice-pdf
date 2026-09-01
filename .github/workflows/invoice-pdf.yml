@@ -21,6 +21,7 @@ jobs:
         run: npm install @notionhq/client puppeteer
 
       - name: Render PDF
+        id: render
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           PAGE_ID: ${{ github.event.client_payload.page_id }}
@@ -30,9 +31,10 @@ jobs:
         id: upload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PDF_FILENAME: ${{ steps.render.outputs.pdf_filename }}
         run: |
           TAG="invoice-${{ github.event.client_payload.page_id }}-${{ github.run_id }}"
-          gh release create "$TAG" invoice.pdf --title "$TAG" --notes "Auto-generated invoice PDF"
+          gh release create "$TAG" "$PDF_FILENAME" --title "$TAG" --notes "Auto-generated invoice PDF"
           URL=$(gh release view "$TAG" --json assets -q '.assets[0].url')
           echo "pdf_url=$URL" >> "$GITHUB_OUTPUT"
 
@@ -41,4 +43,5 @@ jobs:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           PAGE_ID: ${{ github.event.client_payload.page_id }}
           PDF_URL: ${{ steps.upload.outputs.pdf_url }}
+          PDF_FILENAME: ${{ steps.render.outputs.pdf_filename }}
         run: node attach.js
