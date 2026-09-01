@@ -3,20 +3,7 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
-const invoiceName = process.env.INVOICE_NAME;
-
-async function findPageIdByName(name) {
-  const res = await notion.search({
-    query: name,
-    filter: { property: 'object', value: 'page' }
-  });
-  const match = res.results.find(p => {
-    const title = p.properties?.Name?.title?.[0]?.plain_text;
-    return title === name;
-  });
-  if (!match) throw new Error(`No page found matching name: ${name}`);
-  return match.id;
-}
+const pageId = process.env.PAGE_ID;
 
 // Turn a Notion rich_text array into plain HTML-safe text
 function richText(arr = []) {
@@ -55,7 +42,6 @@ async function getAllBlocks(blockId) {
 }
 
 async function main() {
-  const pageId = await findPageIdByName(invoiceName);
   const blocks = await getAllBlocks(pageId);
   const bodyHtml = blocks.map(blockToHtml).join('\n');
 
