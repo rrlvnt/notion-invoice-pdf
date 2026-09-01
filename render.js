@@ -147,11 +147,10 @@ function buildHeaderHtml(properties) {
 
 const CSS = `
   body {
-    font-family: Helvetica, Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     color: #222;
-    padding: 48px;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.4;
   }
   .invoice-title {
     font-size: 28px;
@@ -211,6 +210,9 @@ async function main() {
     <html>
       <head>
         <meta charset="utf-8">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
         <style>${CSS}</style>
       </head>
       <body>
@@ -225,7 +227,14 @@ async function main() {
   const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   const browserPage = await browser.newPage();
   await browserPage.setContent(html, { waitUntil: 'networkidle0' });
-  await browserPage.pdf({ path: 'invoice.pdf', format: 'A4', printBackground: true });
+  await browserPage.evaluateHandle('document.fonts.ready');
+  await browserPage.pdf({
+    path: 'invoice.pdf',
+    format: 'A4',
+    landscape: false,
+    printBackground: true,
+    margin: { top: '0.5in', bottom: '0.5in', left: '0.5in', right: '0.5in' }
+  });
   await browser.close();
 
   console.log('PDF generated: invoice.pdf');
