@@ -10,7 +10,6 @@ const NOTION_COLORS = {
   green: '#448361', blue: '#337ea9', purple: '#9065b0', pink: '#c14c8a', red: '#d44c47'
 };
 
-// Render a rich_text array into HTML, preserving bold/italic/color/links per run.
 function richText(arr = []) {
   return arr.map(t => {
     let content = (t.plain_text || '').replace(/</g, '&lt;').replace(/\n/g, '<br/>');
@@ -27,7 +26,6 @@ function richText(arr = []) {
   }).join('');
 }
 
-// Recursively fetch a block's children, and their children, etc.
 async function fetchChildrenRecursive(blockId) {
   let blocks = [];
   let cursor;
@@ -45,8 +43,49 @@ async function fetchChildrenRecursive(blockId) {
   return blocks;
 }
 
-// Convert a single block (and its children, if any) to HTML.
-function blockToHtml(block) {
+async function tableBlockToHtml(tableBlock) {
+  try {
+    const table = tableBlock.table;
+    if (!table.rows.length) return '<p>No table data</p>';
+
+    let html = '<table style="width:100%; border-collapse:collapse; margin:1rem 0;">';
+
+    if (table.has_header_row && table.rows[0]) {
+      const headerRow = table.rows[0];
+      html += '<thead style="border-bottom:2px solid #ddd;"><tr>';
+      
+      headerRow.cells.forEach(cell => {
+        const cellText = cell.map(c => c.plain_text || '').join('');
+        html += `<th style="padding:0.5rem; text-align:left; font-weight:bold;">${cellText}</th>`;
+      });
+      
+      html += '</tr></thead>';
+    }
+
+    html += '<tbody>';
+
+    const startIndex = table.has_header_row ? 1 : 0;
+    for (let i = startIndex; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      html += '<tr style="border-bottom:1px solid #eee;">';
+      
+      row.cells.forEach(cell => {
+        const cellText = cell.map(c => c.plain_text || '').join('');
+        html += `<td style="padding:0.5rem;">${cellText}</td>`;
+      });
+      
+      html += '</tr>';
+    }
+
+    html += '</tbody></table>';
+    return html;
+  } catch (err) {
+    console.error('Table render failed:', err);
+    return '<p>[Table failed to render]</p>';
+  }
+}
+
+async function blockToHtml(block) {
   const type = block.type;
   const data = block[type];
 
@@ -54,6 +93,7 @@ function blockToHtml(block) {
     case 'heading_1': return `<h1>${richText(data.rich_text)}</h1>`;
     case 'heading_2': return `<h2>${richText(data.rich_text)}</h2>`;
     case 'heading_3': return `<h3>${richText(data.rich_text)}</h3>`;
+    case 'table': return await tableBlockToHtml(block);
     case 'paragraph': {
       const text = richText(data.rich_text);
       if (!text) return `<div class="spacer"></div>`;
@@ -81,7 +121,6 @@ function blockToHtml(block) {
   }
 }
 
-// Convert an array of blocks to HTML, grouping consecutive list items into <ul>/<ol>.
 function blocksToHtml(blocks) {
   let html = '';
   let listBuffer = [];
@@ -133,9 +172,8 @@ function buildFilename(properties) {
   const rawTitle = properties['Name']?.title?.[0]?.plain_text || 'invoice';
   const safeTitle = rawTitle.replace(/\s+/g, '_');
 
-  // Example target shape: BJ__08.31.26_INVOICE_WSC_Dry_Museum__NYC_2026
   const parts = [];
-  if (entity) parts.push(`${entity}_`); // trailing underscore gives the "__" before the date
+  if (entity) parts.push(`${entity}_`);
   parts.push(dateStr);
   parts.push(`_${safeTitle}`);
 
@@ -227,7 +265,7 @@ async function main() {
   const pdfFilename = `${filenameBase}.pdf`;
 
   const blocks = await fetchChildrenRecursive(pageId);
-  const bodyHtml = blocksToHtml(blocks);
+  const bodyHtml = await blocksToHtml(blocks);
 
   const html = `
     <html>
